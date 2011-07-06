@@ -1,0 +1,30 @@
+<?php
+
+  function webform_userlist_webform_select_options_info() {
+    $items = array();
+
+    $result = db_query("SELECT * FROM {role}");
+
+    while ($r = db_fetch_object($result)) {
+      $option = str_replace(' ', '-', strtolower($r->name));
+      $items[$option] = array(
+        'title' => 'Users - ' . $r->name,
+        'options callback' => '_get_userlist',
+        'options arguments' => $r->rid,
+      );
+    }
+
+    return $items;
+  }
+
+  function _get_userlist($component, $flat, $filter, $rid) {
+    $nodes = array();
+
+    $result = db_query("SELECT n.uid, n.title FROM {users} u INNER JOIN {users_roles} ur ON u.uid = ur.uid LEFT JOIN node n on n.uid = u.uid WHERE ur.rid = %d AND u.status = 1 AND n.type = 'profile'", $rid);
+
+    while ($u = db_fetch_object($result)) {
+      $nodes[$u->uid] = $u->title;
+    }
+
+    return $nodes;
+  }
