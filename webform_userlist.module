@@ -3,24 +3,26 @@
   function webform_userlist_webform_select_options_info() {
     $items = array();
 
-    $result = db_query("SELECT * FROM {role}");
+    $positions = db_result(db_query("SELECT global_settings FROM {content_node_field} WHERE field_name = 'field_title_position'"));
+    $positions = unserialize($positions);
+    $positions = explode("\r\n",$positions['allowed_values']);
 
-    while ($r = db_fetch_object($result)) {
-      $option = str_replace(' ', '-', strtolower($r->name));
+    foreach ($positions as $position) {
+      $option = str_replace(' ', '-', strtolower($position));
       $items[$option] = array(
-        'title' => 'Users - ' . $r->name,
+        'title' => 'Users - ' . $position,
         'options callback' => '_get_userlist',
-        'options arguments' => $r->rid,
+        'options arguments' => $position,
       );
     }
 
     return $items;
   }
 
-  function _get_userlist($component, $flat, $filter, $rid) {
+  function _get_userlist($component, $flat, $filter, $position) {
     $nodes = array();
 
-    $result = db_query("SELECT n.uid, n.title FROM {users} u INNER JOIN {users_roles} ur ON u.uid = ur.uid LEFT JOIN node n on n.uid = u.uid WHERE ur.rid = %d AND u.status = 1 AND n.type = 'profile'", $rid);
+    $result = db_query("SELECT n.uid, n.title FROM {users} u LEFT JOIN node n on n.uid = u.uid LEFT JOIN content_type_profile p ON p.vid = n.vid LEFT JOIN {content_field_title_position} tp ON n.vid = tp.vid WHERE tp.field_title_position_value = '%s' AND u.status = 1 AND n.type = 'profile' ORDER BY p.field_last_name_value", $position);
 
     while ($u = db_fetch_object($result)) {
       $nodes[$u->uid] = $u->title;
